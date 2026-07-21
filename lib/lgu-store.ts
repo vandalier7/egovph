@@ -1,14 +1,24 @@
 import { LguService } from '@/types/lgu';
 import { MOCK_SERVICES } from './lgu-data';
 
-const STORAGE_KEY = 'egov_lgu_services_v1';
+const STORAGE_KEY = 'egov_lgu_services_v2';
 
 export function getStoredServices(): LguService[] {
   if (typeof window === 'undefined') return MOCK_SERVICES;
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
-      return JSON.parse(data);
+      const stored: LguService[] = JSON.parse(data);
+      // Merge any default mock services that aren't in stored memory yet
+      const missing = MOCK_SERVICES.filter(
+        (mock) => !stored.some((s) => s.id === mock.id)
+      );
+      if (missing.length > 0) {
+        const merged = [...stored, ...missing];
+        saveStoredServices(merged);
+        return merged;
+      }
+      return stored;
     }
   } catch (e) {
     console.error('Failed to load services from storage', e);
