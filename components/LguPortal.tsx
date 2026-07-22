@@ -94,6 +94,9 @@ export default function LguPortal() {
         <MobileHeader
           title="LGU"
           onBackClick={() => alert('Navigating back to main eGovPH dashboard')}
+          onCreateProgramClick={() => {
+            // TODO: wire this up
+          }}
         />
 
         {/* Scrollable Content Container */}

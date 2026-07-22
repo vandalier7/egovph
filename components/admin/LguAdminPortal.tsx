@@ -12,6 +12,7 @@ import {
   Send,
   CheckCircle2,
   ArrowLeft,
+  ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -86,6 +87,11 @@ export default function LguAdminPortal({ lguId }: LguAdminPortalProps) {
     },
   ]);
 
+  // Submissions scoped to the currently selected service
+  const filteredSubmissions = submissions.filter(
+    (sub) => sub.serviceId === selectedService?.id
+  );
+
   const handleSaveService = (updated: LguService) => {
     // Persist to store (triggers real-time sync with Citizen View)
     const allUpdated = saveSingleService(updated);
@@ -141,7 +147,7 @@ export default function LguAdminPortal({ lguId }: LguAdminPortalProps) {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>Submit Package For Review</span>
+                <span>Submit</span>
               </button>
             )}
 
@@ -167,6 +173,31 @@ export default function LguAdminPortal({ lguId }: LguAdminPortalProps) {
 
       {/* Main Body */}
       <main className="max-w-6xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6 space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
+        {/* Service Selection Dropdown (topmost widget) */}
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs w-full">
+          <label
+            htmlFor="service-select"
+            className="block text-xs font-extrabold uppercase text-slate-400 tracking-wider mb-2"
+          >
+            Service
+          </label>
+          <div className="relative">
+            <select
+              id="service-select"
+              value={selectedService?.id || ''}
+              onChange={(e) => setSelectedServiceId(e.target.value)}
+              className="w-full appearance-none bg-white border border-slate-200 rounded-xl pl-3 pr-9 py-2.5 text-sm font-bold text-slate-900 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 cursor-pointer transition-colors"
+            >
+              {services.map((srv) => (
+                <option key={srv.id} value={srv.id}>
+                  {srv.code} — {srv.title}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+
         {/* Navigation Tabs */}
         <div className="bg-white rounded-2xl p-1 border border-slate-200 shadow-2xs flex items-center gap-1 w-full">
           <button
@@ -190,70 +221,31 @@ export default function LguAdminPortal({ lguId }: LguAdminPortalProps) {
             }`}
           >
             <Inbox className="w-3.5 h-3.5" />
-            <span>Responses ({submissions.length})</span>
+            <span>Responses ({filteredSubmissions.length})</span>
           </button>
         </div>
 
         {/* TAB 1: Program & Form Builder */}
         {activeTab === 'programs' && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6 w-full">
-            {/* Sidebar / Top Picker: Service List */}
-            <div className="md:col-span-1 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3 w-full">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-                  Services Package
-                </h3>
-                <span className="text-xs font-bold text-blue-600">
-                  {services.length} Total
-                </span>
+          <div className="w-full min-w-0">
+            {selectedService ? (
+              <FormBlockBuilder
+                key={selectedService.id}
+                service={selectedService}
+                onSaveService={handleSaveService}
+              />
+            ) : (
+              <div className="bg-white p-8 rounded-2xl text-center text-slate-400">
+                Loading service builder...
               </div>
-
-              {/* Service Selection List */}
-              <div className="flex md:flex-col gap-1.5 overflow-x-auto pb-1 md:pb-0">
-                {services.map((srv) => (
-                  <button
-                    key={srv.id}
-                    onClick={() => setSelectedServiceId(srv.id)}
-                    className={`flex-shrink-0 md:flex-shrink text-left p-2.5 sm:p-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-between ${
-                      selectedService?.id === srv.id
-                        ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-2xs'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
-                    }`}
-                  >
-                    <div>
-                      <span className="block text-xs sm:text-sm font-extrabold">
-                        {srv.code}
-                      </span>
-                      <span className="text-[10px] sm:text-[11px] font-normal text-slate-500 line-clamp-1 hidden sm:block">
-                        {srv.title}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Main Area: Form Block Builder (Keyed by service ID so state re-initializes on service switch!) */}
-            <div className="md:col-span-3 w-full min-w-0">
-              {selectedService ? (
-                <FormBlockBuilder
-                  key={selectedService.id}
-                  service={selectedService}
-                  onSaveService={handleSaveService}
-                />
-              ) : (
-                <div className="bg-white p-8 rounded-2xl text-center text-slate-400">
-                  Loading service builder...
-                </div>
-              )}
-            </div>
+            )}
           </div>
         )}
 
-        {/* TAB 2: Submissions Response View */}
+        {/* TAB 2: Submissions Response View (filtered to selected service) */}
         {activeTab === 'submissions' && (
           <SubmissionResponseView
-            submissions={submissions}
+            submissions={filteredSubmissions}
             onUpdateStatus={handleUpdateSubmissionStatus}
           />
         )}
